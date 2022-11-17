@@ -53,3 +53,5 @@ export function Ele<T>(tag: EleOrTag<T>, params?: TreeParams<T>) {
   }
   return ele;
 }
+
+(window as any).JSX_ELE = Ele;

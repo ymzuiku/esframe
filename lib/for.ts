@@ -1,4 +1,5 @@
 import { Ele } from "./ele";
+import { createEmpty } from "./show";
 import { EleOrTag, TreeParams } from "./types";
 import { bindSubscrib } from "./update";
 
@@ -38,20 +39,16 @@ export function For<T>(
 
         if (nowL > lastL) {
           const eles = [];
-          let append = 0;
           for (let i = lastL; i < nowL; i++) {
-            append++;
             eles.push(render(i, each));
           }
           ele.append(...eles);
         } else {
-          let removed = 0;
           const removes = [];
           for (let i = nowL; i < lastL; i++) {
             const e = ele.childNodes.item(i);
             if (e) {
               removes.push(e);
-              removed++;
             }
           }
           removes.forEach((e) => e.remove());

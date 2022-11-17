@@ -85,17 +85,6 @@ export function bindSubscrib(
 // eslint-disable-next-line
 const nextElements = new Set<Element & { __x_subscrib: Record<string, any> }>();
 
-// function raf(index: number, fn: () => void) {
-//   if (index < 1500) {
-//     fn();
-//     return;
-//   }
-//   const nextIndex = index - 1500 - index / 6;
-//   requestAnimationFrame(() => {
-//     raf(nextIndex, fn);
-//   });
-// }
-
 const updateNextElements = () => {
   nextElements.forEach((e) => {
     if (e.__x_subscrib) {

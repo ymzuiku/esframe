@@ -323,6 +323,7 @@ function Ele(tag, params) {
   }
   return ele;
 }
+window.JSX_ELE = Ele;
 
 // lib/for.ts
 function For(tag, params) {
@@ -343,20 +344,16 @@ function For(tag, params) {
       }
       if (nowL > lastL) {
         const eles = [];
-        let append = 0;
         for (let i = lastL; i < nowL; i++) {
-          append++;
           eles.push(render(i, each));
         }
         ele.append(...eles);
       } else {
-        let removed = 0;
         const removes = [];
         for (let i = nowL; i < lastL; i++) {
           const e = ele.childNodes.item(i);
           if (e) {
             removes.push(e);
-            removed++;
           }
         }
         removes.forEach((e) => e.remove());
@@ -378,7 +375,13 @@ function createEmpty() {
   span.style.all = "none";
   return span;
 }
-function Show(when, render) {
+function Show({
+  when,
+  render
+}) {
+  if (!when) {
+    return createEmpty();
+  }
   const base = createEmpty();
   if (typeof when === "function") {
     const createShowBind = (bindEle) => {

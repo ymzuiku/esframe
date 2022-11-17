@@ -6,10 +6,16 @@ export function createEmpty() {
   return span;
 }
 
-export function Show(
-  when: boolean | (() => boolean | Promise<boolean>),
-  render: () => Node
-): Node {
+export function Show({
+  when,
+  render,
+}: {
+  when: boolean | (() => boolean | Promise<boolean>);
+  render: () => Node;
+}): Node {
+  if (!when) {
+    return createEmpty();
+  }
   const base = createEmpty();
   if (typeof when === "function") {
     const createShowBind = (bindEle: Node) => {

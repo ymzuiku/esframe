@@ -30,12 +30,10 @@ export type TreeParams<T> =
   | Omit<{ [key in string]: unknown }, keyof T>;
 export type EleOrTag<T> = T | keyof HTMLElementTagNameMap;
 
-// const dog = <T>(ele: T, params: TreeParams<T>) => {};
-
-// dog(document.createElement("div"), {
-//   dog: "aaaaa",
-//   oninput: (e) => {
-//     const value = (e.currentTarget as HTMLInputElement).value;
-//     return value;
-//   },
-// });
+export type Child =
+  | Element
+  | Node
+  | string
+  | number
+  | ((ele: Element | Node) => void);
+export type Children = Child[];

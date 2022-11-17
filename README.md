@@ -1,6 +1,6 @@
 # esframe
 
-- Like Flutter element tree creator, and easy extends to JSX
+- Like Flutter element tree creator
 - Zero dependency
 - No diff dom
 - No proxy, No defineProperty
