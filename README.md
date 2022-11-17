@@ -1,11 +1,40 @@
 # esframe
 
-- Like Flutter element tree creator
+## Why esframe?
+
+When you want use native-js create some Element, we need encapsulation some tools method, like set elements params, createElement tree, and update element. listening element append DOM mount, or remove element.
+
+esframe is simplify do this. like framework, but keep in native element.
+
+you can use esframe like framework or use esframe only create some elements in tiny task.
+
+## Features
+
+- Tiny, only 3.5KB in gzip
 - Zero dependency
+- bundle less, like Flutter element tree creator.
 - No diff dom
 - No proxy, No defineProperty
 - No top framework life cycle
 - No useState, no createSignal, just `toUpdate` all
+
+## Install
+
+Use npm:
+
+```sh
+npm/pnpm/yarn install "esframe"
+```
+
+Use CDN:
+
+```html
+<script type="module">
+  import { Ele } from "https://cdn.skypack.dev/esframe";
+  const app = Ele("div");
+  document.body.append(app);
+</script>
+```
 
 ## Ele, toUpdate example
 
@@ -165,3 +194,11 @@ toUpdate allways update full page to last state, full page update can help your 
 
 - `toUpdate()`: (Recommend) update full page element
 - `toUpdate(element)`: Can update first the element and the element children, and update all when idle
+
+## TS vs TSX
+
+TSX(JSX) is less code, but pure Typescript is acceptable too.
+
+This page is same code in TS and TSX
+
+![](./ts-vs-tsx.png)
