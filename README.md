@@ -116,7 +116,7 @@ const app = Ele("div", {
         return Ele("input", {
           // bind subscribe value
           value: () => state["value" + area()],
-          dog: "aaa",
+          ["data-info"]: "info",
           oninput: (e) => {
             const value = (e.currentTarget as HTMLInputElement).value;
             state["value" + i] = value;
