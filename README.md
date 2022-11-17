@@ -71,12 +71,12 @@ const app = Ele("div", {
         alert("hello");
       },
     }),
-    Show(
-      () => Date.now() % 3 !== 0,
-      () => {
+    Show({
+      when: () => Date.now() % 3 !== 0,
+      render: () => {
         return Ele("span", { textContent: "show temp" });
-      }
-    ),
+      },
+    }),
     For("div", {
       each: () => {
         const v = Number(state["value0"]);

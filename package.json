@@ -1,6 +1,6 @@
 {
   "name": "esframe",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "main": "lib/index.ts",
   "types": "lib/index.ts",
   "module": "./esm/index.js",
