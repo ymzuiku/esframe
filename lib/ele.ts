@@ -1,6 +1,7 @@
 import { setAttr } from "./update";
 import { TreeParams, EleOrTag } from "./types";
 import { bindSubscrib } from "./update";
+import { onCleanup, onEntry, onMount } from "./onMount";
 
 // eslint-disable-next-line
 export function tagToElement(tag: any): any {
@@ -22,14 +23,28 @@ export function Ele<T>(tag: EleOrTag<T>, params?: TreeParams<T>) {
       // @ts-ignore
       const v = params[k];
       // update props on assignxUpdate
-      if (
-        typeof v === "function" &&
-        // @ts-ignore
-        ele.setAttribute &&
-        !/^on/.test(k as string)
-      ) {
-        bindSubscrib(ele, k, v);
-        return;
+
+      if (ele.setAttribute) {
+        if (typeof v === "function" && !/^on/.test(k as string)) {
+          if (k === "ref") {
+            v(ele);
+            return;
+          }
+          bindSubscrib(ele, k, v);
+          return;
+        }
+        if (k === "onMount") {
+          onMount(ele as Element, v);
+          return;
+        }
+        if (k === "onCleanup") {
+          onCleanup(ele as Element, v);
+          return;
+        }
+        if (k === "onEntry") {
+          onEntry(ele as Element, v);
+          return;
+        }
       }
 
       // @ts-ignore

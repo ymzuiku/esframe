@@ -1,11 +1,14 @@
 {
   "name": "esframe",
-  "version": "0.1.0",
+  "version": "0.1.5",
   "main": "lib/index.ts",
   "types": "lib/index.ts",
+  "module": "./esm/index.js",
   "exports": {
-    "import": "./esm/index.mjs",
-    "require": "./cjs/index.js"
+    ".": {
+      "import": "./esm/index.js",
+      "require": "./cjs/index.js"
+    }
   },
   "private": false,
   "scripts": {
@@ -20,5 +23,9 @@
   "bugs": {
     "url": "git+https://github.com/ymzuiku/esframe.git"
   },
-  "homepage": "git+https://github.com/ymzuiku/esframe.git"
+  "homepage": "git+https://github.com/ymzuiku/esframe.git",
+  "devDependencies": {
+    "@skypack/package-check": "^0.2.2",
+    "find-useless-files-plugin": "^1.0.0"
+  }
 }

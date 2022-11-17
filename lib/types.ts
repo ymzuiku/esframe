@@ -16,8 +16,17 @@ type TagKey<K> = K extends keyof HTMLElementTagNameMap
   ? HTMLElementTagNameMap[K]
   : K;
 
+interface LifeEvents<T> {
+  // eslint-disable-next-line
+  ref?: (ele: TagKey<T>) => any;
+  onMount?: (ele: TagKey<T>) => any;
+  onCleanup?: (ele: TagKey<T>) => any;
+  onEntry?: (ele: TagKey<T>) => any;
+}
+
 export type TreeParams<T> =
   | ValueToFn<OptionFn<TagKey<T>>>
+  | LifeEvents<T>
   | Omit<{ [key in string]: unknown }, keyof T>;
 export type EleOrTag<T> = T | keyof HTMLElementTagNameMap;
 
@@ -26,7 +35,7 @@ export type EleOrTag<T> = T | keyof HTMLElementTagNameMap;
 // dog(document.createElement("div"), {
 //   dog: "aaaaa",
 //   oninput: (e) => {
-// 		const value = (e.currentTarget as HTMLInputElement).value;
+//     const value = (e.currentTarget as HTMLInputElement).value;
 //     return value;
 //   },
 // });

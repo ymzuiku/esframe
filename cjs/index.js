@@ -30,6 +30,9 @@ __export(lib_exports, {
   attributeKeys: () => attributeKeys,
   bindSubscrib: () => bindSubscrib,
   createEmpty: () => createEmpty,
+  onCleanup: () => onCleanup,
+  onEntry: () => onEntry,
+  onMount: () => onMount,
   setAttr: () => setAttr,
   tagToElement: () => tagToElement,
   toUpdate: () => toUpdate
@@ -127,38 +130,23 @@ function bindSubscrib(ele, key, fn, ignoreAutoRun) {
   }
 }
 var nextElements = /* @__PURE__ */ new Set();
-var nowId = "";
-var updateNextElements = (id) => {
-  if (nowId !== id) {
-    return;
-  }
+var updateNextElements = () => {
   nextElements.forEach((e) => {
-    if (nowId !== id) {
-      return;
-    }
-    requestAnimationFrame(() => {
-      if (nowId !== id) {
-        return;
-      }
-      if (e.__x_subscrib) {
-        const keys = Object.keys(e.__x_subscrib);
-        keys.forEach((k) => {
-          if (nowId !== id) {
-            return;
-          }
-          const fn = e.__x_subscrib[k];
-          if (/^(__update)/.test(k)) {
-            fn(e, k);
-            return;
-          }
-          Promise.resolve(fn(e, k)).then((value) => {
-            setAttr(e, k, value);
-          });
+    if (e.__x_subscrib) {
+      const keys = Object.keys(e.__x_subscrib);
+      keys.forEach((k) => {
+        const fn = e.__x_subscrib[k];
+        if (/^(__update)/.test(k)) {
+          fn(e, k);
+          return;
+        }
+        Promise.resolve(fn(e, k)).then((value) => {
+          setAttr(e, k, value);
         });
-      }
-    });
-    nextElements.delete(e);
+      });
+    }
   });
+  nextElements.clear();
 };
 function updateOne(ele) {
   if (ele.hasAttribute("data-x-subscrib")) {
@@ -171,15 +159,21 @@ function updateOne(ele) {
 }
 var filterEvents = new BootMap();
 var fullUpdateEvents;
+var lastElementSize = 0;
+function fixFullTimeout() {
+  if (lastElementSize < 3e3) {
+    return 17;
+  }
+  return lastElementSize / 3e3 * 17;
+}
 function toUpdate(priority = document.body, options = {}) {
   if (priority !== null) {
-    let id = Math.random().toString();
-    nowId = id;
     const lastRaf = filterEvents.get(priority) || 0;
     if (lastRaf) {
       cancelAnimationFrame(lastRaf);
     }
     const nextRef = requestAnimationFrame(() => {
+      filterEvents.delete(priority);
       if (typeof priority === "string") {
         document.body.querySelectorAll(priority).forEach(updateOne);
       } else if (Array.isArray(priority)) {
@@ -187,22 +181,104 @@ function toUpdate(priority = document.body, options = {}) {
       } else {
         updateOne(priority);
       }
-      updateNextElements(id);
-      filterEvents.delete(priority);
+      updateNextElements();
     });
     filterEvents.set(priority, nextRef);
   }
   if (!options.ignoreSupplement && priority !== document.body) {
     if (fullUpdateEvents) {
-      clearTimeout(fullUpdateEvents);
-      fullUpdateEvents = null;
+      return;
     }
     fullUpdateEvents = setTimeout(() => {
+      fullUpdateEvents = null;
       updateOne(document.body);
-      updateNextElements(nowId);
-    }, 250);
+      lastElementSize = nextElements.size;
+      updateNextElements();
+    }, fixFullTimeout());
   }
 }
+
+// lib/onMount.ts
+var observeOption = {
+  childList: true,
+  subtree: true
+};
+var onMoountWeak = /* @__PURE__ */ new WeakMap();
+var onCleanupWeak = /* @__PURE__ */ new WeakMap();
+var onEntryWeak = /* @__PURE__ */ new WeakMap();
+function onMount(target, callback) {
+  if (onMoountWeak.has(target)) {
+    const fns = onMoountWeak.get(target);
+    fns.push(callback);
+    return;
+  }
+  onMoountWeak.set(target, [callback]);
+  const observer = new MutationObserver((_e) => {
+    if (document.contains(target)) {
+      observer.disconnect();
+      const fns = onMoountWeak.get(target);
+      if (fns) {
+        fns.forEach((fn) => fn(target));
+      }
+      onMoountWeak.delete(target);
+    }
+  });
+  observer.observe(document, observeOption);
+}
+function onCleanup(target, callback) {
+  if (onCleanupWeak.has(target)) {
+    const fns = onCleanupWeak.get(target);
+    fns.push(callback);
+    return;
+  }
+  onCleanupWeak.set(target, [callback]);
+  onMount(target, () => {
+    const observer = new MutationObserver(() => {
+      if (!document.contains(target)) {
+        observer.disconnect();
+        const fns = onCleanupWeak.get(target);
+        if (fns) {
+          fns.forEach((fn) => fn(target));
+        }
+        onCleanupWeak.delete(target);
+      }
+    });
+    observer.observe(document, observeOption);
+  });
+}
+var onEntry = (target, callback, { minHeight = "50px", root } = {}) => {
+  if (onEntryWeak.has(target)) {
+    const fns = onEntryWeak.get(target);
+    fns.push(callback);
+    return;
+  }
+  onEntryWeak.set(target, [callback]);
+  onMount(target, () => {
+    if (!target.style.minHeight) {
+      target.style.minHeight = minHeight;
+    }
+    if (!target.getAttribute("data-lazy")) {
+      target.setAttribute("data-lazy", "1");
+      const observer = new IntersectionObserver((e) => {
+        e.forEach((ent) => {
+          target.setAttribute("data-lazy", "2");
+          if (ent.isIntersecting) {
+            observer.disconnect();
+            const fns = onEntryWeak.get(target);
+            if (fns) {
+              fns.forEach((fn) => fn(ent));
+            }
+            onEntryWeak.delete(target);
+          }
+        });
+      }, { root, rootMargin: window.innerHeight / 2 + "px" });
+      observer.observe(target);
+      onCleanup(target, () => {
+        observer.disconnect();
+      });
+    }
+  });
+};
 
 // lib/ele.ts
 function tagToElement(tag) {
@@ -220,9 +296,27 @@ function Ele(tag, params) {
     const keys = Object.keys(params);
     keys.forEach((k) => {
       const v = params[k];
-      if (typeof v === "function" && ele.setAttribute && !/^on/.test(k)) {
-        bindSubscrib(ele, k, v);
-        return;
+      if (ele.setAttribute) {
+        if (typeof v === "function" && !/^on/.test(k)) {
+          if (k === "ref") {
+            v(ele);
+            return;
+          }
+          bindSubscrib(ele, k, v);
+          return;
+        }
+        if (k === "onMount") {
+          onMount(ele, v);
+          return;
+        }
+        if (k === "onCleanup") {
+          onCleanup(ele, v);
+          return;
+        }
+        if (k === "onEntry") {
+          onEntry(ele, v);
+          return;
+        }
       }
       setAttr(ele, k, v);
     });
@@ -236,10 +330,10 @@ function For(tag, params) {
   const out = Ele(tag, rest);
   if (typeof each === "function") {
     bindSubscrib(out, "__update_for", (ele) => {
-      const rendered = !!ele.__lastForRender;
-      ele.__lastForRender = true;
+      const lastL = ele.__lastForRender;
       const nowL = each();
-      if (!rendered) {
+      ele.__lastForRender = nowL;
+      if (!lastL) {
         const eles = [];
         for (let i = 0; i < nowL; i++) {
           eles.push(render(i, each));
@@ -247,20 +341,25 @@ function For(tag, params) {
         ele.append(...eles);
         return;
       }
-      const l = ele.childNodes.length;
-      if (nowL > l) {
+      if (nowL > lastL) {
         const eles = [];
-        for (let i = l; i < nowL; i++) {
+        let append = 0;
+        for (let i = lastL; i < nowL; i++) {
+          append++;
           eles.push(render(i, each));
         }
         ele.append(...eles);
       } else {
-        for (let i = nowL; i < l; i++) {
+        let removed = 0;
+        const removes = [];
+        for (let i = nowL; i < lastL; i++) {
           const e = ele.childNodes.item(i);
           if (e) {
-            e.remove();
+            removes.push(e);
+            removed++;
           }
         }
+        removes.forEach((e) => e.remove());
       }
     });
   } else {
@@ -308,6 +407,9 @@ module.exports = __toCommonJS(lib_exports);
   attributeKeys,
   bindSubscrib,
   createEmpty,
+  onCleanup,
+  onEntry,
+  onMount,
   setAttr,
   tagToElement,
   toUpdate

@@ -26,6 +26,7 @@ export function setAttr(ele: any, key: string | number | symbol, value: any) {
     Object.assign(ele[key], value);
     return;
   }
+  // 减少不必要的 dom 操作
   if (!ele.__lastAttr) {
     ele.__lastAttr = {};
   }
@@ -84,38 +85,34 @@ export function bindSubscrib(
 // eslint-disable-next-line
 const nextElements = new Set<Element & { __x_subscrib: Record<string, any> }>();
 
-let nowId = "";
-const updateNextElements = (id: string) => {
-  if (nowId !== id) {
-    return;
-  }
+// function raf(index: number, fn: () => void) {
+//   if (index < 1500) {
+//     fn();
+//     return;
+//   }
+//   const nextIndex = index - 1500 - index / 6;
+//   requestAnimationFrame(() => {
+//     raf(nextIndex, fn);
+//   });
+// }
+
+const updateNextElements = () => {
   nextElements.forEach((e) => {
-    if (nowId !== id) {
-      return;
-    }
-    requestAnimationFrame(() => {
-      if (nowId !== id) {
-        return;
-      }
-      if (e.__x_subscrib) {
-        const keys = Object.keys(e.__x_subscrib);
-        keys.forEach((k) => {
-          if (nowId !== id) {
-            return;
-          }
-          const fn = e.__x_subscrib[k];
-          if (/^(__update)/.test(k as string)) {
-            fn(e, k);
-            return;
-          }
-          Promise.resolve(fn(e, k)).then((value) => {
-            setAttr(e, k, value);
-          });
+    if (e.__x_subscrib) {
+      const keys = Object.keys(e.__x_subscrib);
+      keys.forEach((k) => {
+        const fn = e.__x_subscrib[k];
+        if (/^(__update)/.test(k as string)) {
+          fn(e, k);
+          return;
+        }
+        Promise.resolve(fn(e, k)).then((value) => {
+          setAttr(e, k, value);
         });
-      }
-    });
-    nextElements.delete(e);
+      });
+    }
   });
+  nextElements.clear();
 };
 
 // eslint-disable-next-line
@@ -133,6 +130,14 @@ function updateOne(ele: any) {
 const filterEvents = new BootMap<any, number>();
 // eslint-disable-next-line
 let fullUpdateEvents: any;
+let lastElementSize = 0;
+
+function fixFullTimeout() {
+  if (lastElementSize < 3000) {
+    return 17;
+  }
+  return (lastElementSize / 3000) * 17;
+}
 
 // 全量更新, 所有订阅的属性, 可以选择优先更新的元素, 其他全量元素会延迟更新
 export function toUpdate(
@@ -145,13 +150,12 @@ export function toUpdate(
   } = {}
 ) {
   if (priority !== null) {
-    let id = Math.random().toString();
-    nowId = id;
     const lastRaf = filterEvents.get(priority) || 0;
     if (lastRaf) {
       cancelAnimationFrame(lastRaf);
     }
     const nextRef = requestAnimationFrame(() => {
+      filterEvents.delete(priority);
       if (typeof priority === "string") {
         document.body.querySelectorAll(priority).forEach(updateOne);
       } else if (Array.isArray(priority)) {
@@ -159,19 +163,19 @@ export function toUpdate(
       } else {
         updateOne(priority);
       }
-      updateNextElements(id);
-      filterEvents.delete(priority);
+      updateNextElements();
     });
     filterEvents.set(priority, nextRef);
   }
   if (!options.ignoreSupplement && priority !== document.body) {
     if (fullUpdateEvents) {
-      clearTimeout(fullUpdateEvents);
-      fullUpdateEvents = null;
+      return;
     }
     fullUpdateEvents = setTimeout(() => {
+      fullUpdateEvents = null;
       updateOne(document.body);
-      updateNextElements(nowId);
-    }, 250);
+      lastElementSize = nextElements.size;
+      updateNextElements();
+    }, fixFullTimeout());
   }
 }

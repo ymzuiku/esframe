@@ -11,6 +11,6 @@
     "noEmit": true,
     "isolatedModules": true
   },
-  "include": ["**/*.ts", "**/*.tsx", "./files.d.ts"],
+  "include": ["types", "lib"],
   "exclude": ["node_modules/**", "**/node_modules/**"]
 }

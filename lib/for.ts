@@ -4,14 +4,16 @@ import { bindSubscrib } from "./update";
 
 export function For<T>(
   tag: EleOrTag<T>,
-  params: Omit<TreeParams<T>, "each" | "render"> & {
-    each: number | (() => number);
-    render: (index: number, getLength: () => number) => Node;
-  }
+  params:
+    | TreeParams<T>
+    | {
+        each: number | (() => number);
+        render: (index: number, getLength: () => number) => Node;
+      }
 ): Node {
-  const { each, render, ...rest } = params;
   // eslint-disable-next-line
-  const out = Ele(tag, rest as any);
+  const { each, render, ...rest } = params as any;
+  const out = Ele(tag, rest);
 
   if (typeof each === "function") {
     bindSubscrib(
@@ -19,14 +21,13 @@ export function For<T>(
       "__update_for",
       (
         ele: Element & {
-          __lastForRender: boolean;
+          __lastForRender: number;
         }
       ) => {
-        const rendered = !!ele.__lastForRender;
-        ele.__lastForRender = true;
+        const lastL = ele.__lastForRender;
         const nowL = each();
-
-        if (!rendered) {
+        ele.__lastForRender = nowL;
+        if (!lastL) {
           const eles = [];
           for (let i = 0; i < nowL; i++) {
             eles.push(render(i, each));
@@ -34,20 +35,26 @@ export function For<T>(
           ele.append(...eles);
           return;
         }
-        const l = ele.childNodes.length;
-        if (nowL > l) {
+
+        if (nowL > lastL) {
           const eles = [];
-          for (let i = l; i < nowL; i++) {
+          let append = 0;
+          for (let i = lastL; i < nowL; i++) {
+            append++;
             eles.push(render(i, each));
           }
           ele.append(...eles);
         } else {
-          for (let i = nowL; i < l; i++) {
+          let removed = 0;
+          const removes = [];
+          for (let i = nowL; i < lastL; i++) {
             const e = ele.childNodes.item(i);
             if (e) {
-              e.remove();
+              removes.push(e);
+              removed++;
             }
           }
+          removes.forEach((e) => e.remove());
         }
       }
     );
