@@ -197,8 +197,16 @@ toUpdate allways update full page to last state, full page update can help your 
 
 ## TS vs TSX
 
+### Why no use TSX?
+
+Because if you need use esframe in react \ solid-js \ vue(jsx), the jsx parse is use in React \ h, JSX framework is to many. esframe staring point is a tools methods.
+
+### Discard use TSX, are you real?
+
 TSX(JSX) is less code, but pure Typescript is acceptable too.
 
-This page is same code in TS and TSX
+This page is same code in TS and TSX, TSX is only 60% pure TS codes.
 
 ![](./ts-vs-tsx.png)
+
+Flutter is only use pure object tree, is only preference style, we love it.
